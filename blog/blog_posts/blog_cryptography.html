@@ -1,0 +1,563 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>root - cryptography essentials</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: radial-gradient(circle at center, #0a1325 0%, #1e3a8a 100%);
+            color: #d3d3d3;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(10, 19, 37, 0.1);
+            backdrop-filter: blur(12px);
+            padding: 1rem 2rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(74, 144, 226, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .navbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .navbar .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
+            color: #4a90e2;
+            text-decoration: none;
+            text-shadow: 0 0 8px #4a90e2;
+            text-transform: lowercase;
+        }
+
+        .navbar .nav-links {
+            list-style: none;
+            display: flex;
+            gap: clamp(1rem, 2vw, 2rem);
+            align-items: center;
+        }
+
+        .navbar .nav-links li a {
+            color: #d3d3d3;
+            text-decoration: none;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            transition: color 0.3s, text-shadow 0.3s;
+            text-transform: lowercase;
+            padding: 0.2rem 0.5rem;
+        }
+
+        .navbar .nav-links li a:hover:not(.disabled) {
+            color: #4a90e2;
+            text-shadow: 0 0 12px #4a90e2;
+            background: rgba(74, 144, 226, 0.1);
+            border-radius: 4px;
+        }
+
+        .navbar .nav-links li a.disabled {
+            color: #6b7280;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .navbar .search-icon {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .navbar .search-icon i {
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            color: #d3d3d3;
+        }
+
+        .navbar .menu-toggle {
+            display: none;
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
+            color: #d3d3d3;
+            cursor: pointer;
+        }
+
+        /* Search Dropdown */
+        .search-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #1e2a4a;
+            padding: 0.5rem;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            width: clamp(200px, 90%, 300px);
+            transform: translateY(5px);
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .search-dropdown input {
+            background: #2a3b6b;
+            border: 1px solid #3f5eff;
+            color: #ffffff;
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            font-family: 'Roboto Mono', monospace;
+            flex: 1;
+        }
+
+        .search-dropdown button {
+            background: #3f5eff;
+            border: none;
+            color: #ffffff;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .search-dropdown button:hover {
+            background: #5a73ff;
+            box-shadow: 0 0 10px rgba(63, 94, 255, 0.5);
+        }
+
+        .search-dropdown .search-btn i,
+        .search-dropdown .close-btn i {
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+        }
+
+        /* Blog Post Section */
+        .blog-post-section {
+            padding: clamp(2rem, 5vw, 4rem);
+            padding-top: clamp(70px, 10vw, 80px); /* Offset for fixed navbar */
+            background: rgba(10, 19, 37, 0.7);
+        }
+
+        .blog-post-section .container {
+            max-width: clamp(600px, 90%, 800px);
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .blog-post-section img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .blog-post-section h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            color: #4a90e2;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px #4a90e2;
+            text-transform: lowercase;
+        }
+
+        .blog-post-section h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.2rem, 4vw, 1.8rem);
+            color: #4a90e2;
+            margin: 1.5rem 0 0.5rem;
+            text-transform: lowercase;
+        }
+
+        .blog-post-section p {
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            color: #b0b0b0;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .blog-post-section strong {
+            color: #d3d3d3;
+        }
+
+        .blog-post-section .back-link {
+            color: #4a90e2;
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: lowercase;
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+
+        .blog-post-section .back-link:hover {
+            color: #5a73ff;
+            text-shadow: 0 0 10px #5a73ff;
+        }
+
+        /* Footer */
+        .footer {
+            background: #0a1325;
+            padding: clamp(1.5rem, 5vw, 2.5rem);
+            text-align: center;
+            color: #d3d3d3;
+            position: relative;
+            border-top: 1px solid rgba(74, 144, 226, 0.2);
+        }
+
+        .footer .socials {
+            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer .socials a {
+            color: #4a90e2;
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+
+        .footer .socials a:hover {
+            color: #d3d3d3;
+            text-shadow: 0 0 15px #4a90e2;
+        }
+
+        .footer .back-to-top {
+            position: absolute;
+            right: clamp(1rem, 5vw, 2.5rem);
+            bottom: clamp(1rem, 5vw, 2.5rem);
+            background: #1e3a8a;
+            color: #d3d3d3;
+            padding: clamp(0.6rem, 2vw, 0.8rem) clamp(1rem, 3vw, 1.5rem);
+            border-radius: 8px;
+            border: 2px solid #4a90e2;
+            text-decoration: none;
+            transition: background 0.3s, box-shadow 0.3s;
+            font-weight: 700;
+            text-transform: lowercase;
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+        }
+
+        .footer .back-to-top:hover {
+            background: #4a90e2;
+            color: #0a1325;
+            box-shadow: 0 0 20px #4a90e2;
+        }
+
+        .footer p {
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar .nav-links {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background: rgba(10, 19, 37, 0.9);
+                padding: 1.5rem;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .navbar .nav-links.active {
+                display: flex;
+                transform: translateX(0);
+            }
+
+            .navbar .menu-toggle {
+                display: block;
+            }
+
+            .blog-post-section {
+                padding-top: clamp(60px, 10vw, 70px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 0.8rem 1rem;
+            }
+
+            .navbar .logo {
+                font-size: clamp(1.2rem, 4vw, 1.5rem);
+            }
+
+            .navbar .nav-links li a {
+                font-size: clamp(0.8rem, 3vw, 1rem);
+            }
+
+            .blog-post-section img {
+                height: 150px;
+            }
+
+            .blog-post-section h1 {
+                font-size: clamp(1.5rem, 5vw, 2rem);
+            }
+
+            .blog-post-section h2 {
+                font-size: clamp(1rem, 3vw, 1.5rem);
+            }
+
+            .blog-post-section p {
+                font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+            }
+
+            .footer .socials a {
+                font-size: clamp(1.2rem, 4vw, 1.5rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header (Navbar) -->
+    <header class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">0xSakib</a>
+            <ul class="nav-links">
+                <li><a href="../../index.html">root</a></li>
+                <li><a href="../../about/about_index.html">about</a></li>
+                <li><a href="../blog_index.html">blog</a></li>
+                <li><a href="../../notes/index.html">notes</a></li>
+                <li><a href="../../project/index.html">projects</a></li>
+                <li><a href="../../contact/contact_index.html">contact</a></li>
+                <li class="search-icon">
+                    <i class="fas fa-search"></i>
+                    <div class="search-dropdown">
+                        <input type="text" id="search-input" value="Skills">
+                        <button class="search-btn"><i class="fas fa-search"></i></button>
+                        <button class="close-btn"><i class="fas fa-times"></i></button>
+                    </div>
+                </li>
+            </ul>
+            <div class="menu-toggle">☰</div>
+        </div>
+    </header>
+
+    <!-- Blog Post Section -->
+    <section class="blog-post-section">
+        <div class="container">
+            <img src="../../images/blog_post_pictures/weak_cipher.png" alt="Cryptography Illustration" width="800" height="300">
+            <h1>Why DES and 3DES Are No Longer Safe: Understanding Weak Ciphers in Modern Cryptography</h1>
+            <p>Hello, everyone. I am Sakib, a Jr. Penetration tester, and a security researcher. Today we are gonna learn about two weak ciphers.</p>
+            
+            <h2>what is cipher?</h2>
+            <p>A cipher is an algorithm for performing encryption and decryption, <strong>Encipherment</strong> is the process of converting plaintext into a cipher or code; the reverse process is called <strong>decipherment</strong>.</p>
+            <p>There are mainly two types of ciphers: <strong>Classical</strong> and <strong>Modern Ciphers</strong>. But there are two types of Encryption: <strong>Symmetric Encryption</strong> and <strong>Asymmetric Encryption</strong>.</p>
+
+            <h2>today’s topic</h2>
+            <p><strong>Data Encryption Standard (DES)</strong> and <strong>Triple Data Encryption Standard (3DES)</strong>. Both are considered poor ciphers by modern cryptographic standards.</p>
+
+            <h2>data encryption standard (des)</h2>
+            <p>It is used for data encryption by using a secret key for both the encryption and decryption algorithms, which is mainly a symmetric cryptosystem. It uses a 64-bit secret key, but 56 bits are generated randomly and the other 8 bits are used for error detection.</p>
+            <p>DES uses the DEA (data encryption algorithm), a DES is archetypal block cipher, an algorithm that takes a fixed-length string of plaintext bits and implements it in hardware and uses it for single-user encryption.</p>
+            <p>We don’t see this encryption day to day life, but it was used in Government & Military, Banking and Finance, Telecommunications, etc sectors.</p>
+
+            <h2>triple data encryption standard (3des)</h2>
+            <p>DES would no longer be secure that why U.S. Federal Government began a contest seeking a replacement cryptography algorithm. And later they found the 3DES encryption system, which performs DES three times with three different keys. 3DES uses a “key bundle” that comprises three DES keys, K1, K2, and K3. Each key is a standard 56-bit DES key. It performs DES encrypt with K1, then DES decryption with K2 and at last again encrypts with K3.</p>
+            <p>It was also used in Banking and Finance sector and many other sector, But now it doesn’t used anywhere.</p>
+
+            <h2>des weaknesses</h2>
+            <p>It uses short key length (56 bits), which is vulnerable easily with brute-force attacks, So, use of DES is insecure and outdated. Using DES in production systems exposes you to easy exploitation, data breaches very easy.</p>
+
+            <h2>3des security impact and weaknesses</h2>
+            <p>It is relatively weak security compared to modern cipher, it could be meet in the middle attacks. Another weakness is, it use 64 bits which is vulnerable to birthday attacks. (we will discuss about birthday attacks a later day)</p>
+            <p>So, we all should use modern and strong ciphers everywhere.</p>
+
+            <a href="index.html" class="back-link">back to blog</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2025 root. all rights reserved.</p>
+            <div class="socials">
+                <a href="#" title="github"><i class="fab fa-github"></i></a>
+                <a href="#" title="linkedin"><i class="fab fa-linkedin"></i></a>
+                <a href="#" title="twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" title="medium"><i class="fab fa-medium"></i></a>
+                <a href="#" title="facebook"><i class="fab fa-facebook"></i></a>
+                <a href="#" title="glassdoor"><i class="fas fa-briefcase"></i></a>
+                <a href="#" title="telegram"><i class="fab fa-telegram"></i></a>
+            </div>
+            <a href="#blog" class="back-to-top">back to top</a>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Smooth Scrolling (excluding disabled links)
+        document.querySelectorAll('a[href^="#"]:not(.disabled)').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.getBoundingClientRect().top + window.pageYOffset - 60,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Mobile Menu Toggle
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+
+        menuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+
+        // Search Dropdown Toggle and Close
+        const searchIcon = document.querySelector('.search-icon');
+        const searchDropdown = document.querySelector('.search-dropdown');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.querySelector('.search-btn');
+        const closeBtn = document.querySelector('.close-btn');
+
+        // Ensure dropdown is hidden on load
+        searchDropdown.style.display = 'none';
+
+        // Preload content from all pages
+        const pageContent = {};
+        async function loadPageContent() {
+            const pages = [
+                '../index.html',
+                '../about/about_index.html',
+                'index.html',
+                '../contact/contact_index.html'
+            ];
+
+            for (const page of pages) {
+                try {
+                    const response = await fetch(page);
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(text, 'text/html');
+                    pageContent[page] = doc.body.textContent.toLowerCase();
+                } catch (error) {
+                    console.error(`Failed to load ${page}:`, error);
+                }
+            }
+        }
+
+        // Scroll to section containing search query on page load
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('search');
+            if (query) {
+                const sections = document.querySelectorAll('section');
+                for (const section of sections) {
+                    if (section.textContent.toLowerCase().includes(query.toLowerCase())) {
+                        window.scrollTo({
+                            top: section.getBoundingClientRect().top + window.pageYOffset - 60,
+                            behavior: 'smooth'
+                        });
+                        break;
+                    }
+                }
+            }
+        });
+
+        // Load content when the page loads
+        window.addEventListener('load', loadPageContent);
+
+        searchIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (searchDropdown.style.display !== 'flex') {
+                searchDropdown.style.display = 'flex';
+                searchInput.focus();
+            }
+        });
+
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            searchDropdown.style.display = 'none';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchDropdown.contains(e.target) && !searchIcon.contains(e.target)) {
+                searchDropdown.style.display = 'none';
+            }
+        });
+
+        // Search Functionality
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            if (query) {
+                let found = false;
+                for (const [page, content] of Object.entries(pageContent)) {
+                    if (content.includes(query)) {
+                        // Append search query as URL parameter
+                        window.location.href = `${page}?search=${encodeURIComponent(query)}`;
+                        found = true;
+                        searchDropdown.style.display = 'none';
+                        break;
+                    }
+                }
+                if (!found) {
+                    alert('No results found for "' + query + '"');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

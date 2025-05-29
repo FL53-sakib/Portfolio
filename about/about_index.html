@@ -1,0 +1,729 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>root - about</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: radial-gradient(circle at center, #0a1325 0%, #1e3a8a 100%);
+            color: #d3d3d3;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(10, 19, 37, 0.1);
+            backdrop-filter: blur(12px);
+            padding: 1rem 2rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(74, 144, 226, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .navbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .navbar .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
+            color: #4a90e2;
+            text-decoration: none;
+            text-shadow: 0 0 8px #4a90e2;
+            text-transform: lowercase;
+        }
+
+        .navbar .nav-links {
+            list-style: none;
+            display: flex;
+            gap: clamp(1rem, 2vw, 2rem);
+            align-items: center;
+        }
+
+        .navbar .nav-links li a {
+            color: #d3d3d3;
+            text-decoration: none;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            transition: color 0.3s, text-shadow 0.3s;
+            text-transform: lowercase;
+            padding: 0.2rem 0.5rem;
+        }
+
+        .navbar .nav-links li a:hover:not(.disabled) {
+            color: #4a90e2;
+            text-shadow: 0 0 12px #4a90e2;
+            background: rgba(74, 144, 226, 0.1);
+            border-radius: 4px;
+        }
+
+        .navbar .nav-links li a.disabled {
+            color: #6b7280;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .navbar .search-icon {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .navbar .search-icon i {
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            color: #d3d3d3;
+        }
+
+        .navbar .menu-toggle {
+            display: none;
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
+            color: #d3d3d3;
+            cursor: pointer;
+        }
+
+        /* Search Dropdown */
+        .search-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #1e2a4a;
+            padding: 0.5rem;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            width: clamp(200px, 90%, 300px);
+            transform: translateY(5px);
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .search-dropdown input {
+            background: #2a3b6b;
+            border: 1px solid #3f5eff;
+            color: #ffffff;
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+            font-family: 'Roboto Mono', monospace;
+            flex: 1;
+        }
+
+        .search-dropdown button {
+            background: #3f5eff;
+            border: none;
+            color: #ffffff;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+
+        .search-dropdown button:hover {
+            background: #5a73ff;
+            box-shadow: 0 0 10px rgba(63, 94, 255, 0.5);
+        }
+
+        .search-dropdown .search-btn i,
+        .search-dropdown .close-btn i {
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+        }
+
+        /* Bio Section */
+        .bio {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(2rem, 5vw, 4rem);
+            padding-top: clamp(70px, 10vw, 80px); /* Offset for fixed navbar */
+            position: relative;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%230a1325" d="M0 0h100v100H0z"/><path fill="%234a90e2" opacity="0.15" d="M10 10L90 90M90 10L10 90"/></svg>') center/cover;
+        }
+
+        .bio::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(74, 144, 226, 0.1) 0%, transparent 70%);
+            z-index: 0;
+        }
+
+        .bio .container {
+            max-width: clamp(600px, 90%, 800px);
+            z-index: 1;
+            text-align: center;
+        }
+
+        .bio h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 6vw, 3rem);
+            color: #4a90e2;
+            margin-bottom: clamp(1rem, 3vw, 1.5rem);
+            text-shadow: 0 0 10px #4a90e2;
+            text-transform: lowercase;
+        }
+
+        .bio p {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            color: #d3d3d3;
+            margin-bottom: clamp(1.5rem, 4vw, 2rem);
+        }
+
+        /* Skills Section */
+        .skills {
+            padding: clamp(2rem, 5vw, 4rem);
+            background: rgba(10, 19, 37, 0.7);
+        }
+
+        .skills .container {
+            max-width: clamp(600px, 90%, 1000px);
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .skills h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            color: #4a90e2;
+            margin-bottom: clamp(1rem, 3vw, 1.5rem);
+            text-shadow: 0 0 10px #4a90e2;
+            text-transform: lowercase;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: clamp(1rem, 3vw, 1.5rem);
+            list-style: none;
+        }
+
+        .skills-grid li {
+            background: #0a1325;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #4a90e2;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .skills-grid li:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 15px #4a90e2;
+        }
+
+        .skills-grid i {
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
+            color: #4a90e2;
+        }
+
+        .skills-grid span {
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            color: #d3d3d3;
+        }
+
+        /* Certificates Section */
+        .certificates {
+            padding: clamp(2rem, 5vw, 4rem);
+            background: rgba(10, 19, 37, 0.7);
+        }
+
+        .certificates .container {
+            max-width: clamp(600px, 90%, 1000px);
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .certificates h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            color: #4a90e2;
+            margin-bottom: clamp(1rem, 3vw, 1.5rem);
+            text-shadow: 0 0 10px #4a90e2;
+            text-transform: lowercase;
+        }
+
+        .certificates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: clamp(1rem, 3vw, 1.5rem);
+        }
+
+        .certificate-item {
+            background: #0a1325;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #4a90e2;
+            text-align: center;
+        }
+
+        .certificate-item h3 {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            color: #d3d3d3;
+            margin-bottom: 0.5rem;
+        }
+
+        .certificate-item img {
+            max-width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .certificate-item img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Modal for Certificate Images */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            max-width: 90%;
+            max-height: 80vh;
+            border-radius: 8px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #d3d3d3;
+            font-size: 2rem;
+            cursor: pointer;
+            text-shadow: 0 0 10px #4a90e2;
+        }
+
+        /* Footer */
+        .footer {
+            background: #0a1325;
+            padding: clamp(1.5rem, 5vw, 2.5rem);
+            text-align: center;
+            color: #d3d3d3;
+            position: relative;
+            border-top: 1px solid rgba(74, 144, 226, 0.2);
+        }
+
+        .footer .socials {
+            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer .socials a {
+            color: #4a90e2;
+            font-size: clamp(1.5rem, 4vw, 1.8rem);
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+
+        .footer .socials a:hover {
+            color: #d3d3d3;
+            text-shadow: 0 0 15px #4a90e2;
+        }
+
+        .footer .back-to-top {
+            position: absolute;
+            right: clamp(1rem, 5vw, 2.5rem);
+            bottom: clamp(1rem, 5vw, 2.5rem);
+            background: #1e3a8a;
+            color: #d3d3d3;
+            padding: clamp(0.6rem, 2vw, 0.8rem) clamp(1rem, 3vw, 1.5rem);
+            border-radius: 8px;
+            border: 2px solid #4a90e2;
+            text-decoration: none;
+            transition: background 0.3s, box-shadow 0.3s;
+            font-weight: 700;
+            text-transform: lowercase;
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+        }
+
+        .footer .back-to-top:hover {
+            background: #4a90e2;
+            color: #0a1325;
+            box-shadow: 0 0 20px #4a90e2;
+        }
+
+        .footer p {
+            font-size: clamp(0.8rem, 2.5vw, 1rem);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar .nav-links {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background: rgba(10, 19, 37, 0.9);
+                padding: 1.5rem;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .navbar .nav-links.active {
+                display: flex;
+                transform: translateX(0);
+            }
+
+            .navbar .menu-toggle {
+                display: block;
+            }
+
+            .search-dropdown {
+                right: 0;
+                left: 0;
+                margin: 0 auto;
+                width: clamp(200px, 80%, 250px);
+            }
+
+            .bio, .skills, .certificates {
+                padding-top: clamp(60px, 10vw, 70px);
+            }
+
+            .skills-grid, .certificates-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 0.8rem 1rem;
+            }
+
+            .navbar .logo {
+                font-size: clamp(1.2rem, 4vw, 1.5rem);
+            }
+
+            .navbar .nav-links li a {
+                font-size: clamp(0.8rem, 3vw, 1rem);
+            }
+
+            .bio h1, .skills h2, .certificates h2 {
+                font-size: clamp(1.5rem, 6vw, 2.5rem);
+            }
+
+            .bio p, .certificate-item h3 {
+                font-size: clamp(0.9rem, 3vw, 1rem);
+            }
+
+            .skills-grid li, .certificate-item {
+                padding: 0.8rem;
+            }
+
+            .footer .socials a {
+                font-size: clamp(1.2rem, 4vw, 1.5rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header (Navbar) -->
+    <header class="navbar">
+        <div class="container">
+            <a href="../index.html" class="logo">0xSakib</a>
+            <ul class="nav-links">
+                <li><a href="../index.html">root</a></li>
+                <li><a href="about_index.html" class="disabled">about</a></li>
+                <li><a href="../blog/blog_index.html">blog</a></li>
+                <li><a href="../notes/index.html">notes</a></li>
+                <li><a href="../project/project_index.html">projects</a></li>
+                <li><a href="../contact/contact_index.html">contact</a></li>
+                <li class="search-icon">
+                    <i class="fas fa-search"></i>
+                    <div class="search-dropdown">
+                        <input type="text" id="search-input" value="Skills">
+                        <button class="search-btn"><i class="fas fa-search"></i></button>
+                        <button class="close-btn"><i class="fas fa-times"></i></button>
+                    </div>
+                </li>
+            </ul>
+            <div class="menu-toggle">☰</div>
+        </div>
+    </header>
+
+    <!-- Bio Section -->
+    <section id="bio" class="bio">
+        <div class="container">
+            <h1>About Me</h1>
+            <p>I’m a Certified Ethical Hacker, Penetration Tester, CTF Player, and Bug Bounty Hunter — extremely passionate about exploit development and securing real-world systems through hands-on ethical hacking.<br>
+            I am Planning to take certification like <b>PNPT</b> and <b>OSCP</b> very near future.</b></p>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section id="skills" class="skills">
+        <div class="container">
+            <h2>skills</h2>
+            <ul class="skills-grid">
+                <li><i class="fas fa-wrench"></i><span>Burp Suite</span></li>
+                <li><i class="fas fa-bomb"></i><span>Metasploit</span></li>
+                <li><i class="fas fa-network-wired"></i><span>Network Security</span></li>
+                <li><i class="fas fa-shield-alt"></i><span>Security Auditing</span></li>
+                <li><i class="fas fa-user-secret"></i><span>Pentesting</span></li>
+                <li><i class="fas fa-bug"></i><span>Vulnerability Assessment</span></li>
+                <li><i class="fas fa-users"></i><span>Social Engineering</span></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Certificates Section -->
+    <section id="certificates" class="certificates">
+        <div class="container">
+            <h2>certificates</h2>
+            <div class="certificates-grid">
+                <div class="certificate-item">
+                    <h3>Ethical Hacking for Professionals</h3>
+                    <img src="../images/certificates/ehp-7.jpg" alt="Ethical Hacking for Professionals Certificate" data-fullsrc="../images/certificates/ehp-7.jpg">
+                </div>
+                <div class="certificate-item">
+                    <h3>Certified Network Security Practitioner</h3>
+                    <img src="../images/certificates/cnsp.jpg" alt="Certified Network Security Practitioner Certificate" data-fullsrc="../images/certificates/cnsp.jpg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal for Certificate Images -->
+    <div class="modal" id="certificate-modal">
+        <span class="modal-close">×</span>
+        <img class="modal-content" id="modal-image">
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2025 root. all rights reserved.</p>
+            <div class="socials">
+                <a href="#" title="github"><i class="fab fa-github"></i></a>
+                <a href="#" title="linkedin"><i class="fab fa-linkedin"></i></a>
+                <a href="https://x.com/29Md_Sakib" title="twitter"><i class="fab fa-twitter"></i></a>
+                <a href="https://medium.com/@md.sakibmia" title="medium"><i class="fab fa-medium"></i></a>
+                
+                
+            </div>
+            <a href="#bio" class="back-to-top">back to top</a>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Smooth Scrolling (excluding disabled links)
+        document.querySelectorAll('a[href^="#"]:not(.disabled)').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.getBoundingClientRect().top + window.pageYOffset - 60,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Mobile Menu Toggle
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+
+        menuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+
+        // Search Dropdown Toggle and Close
+        const searchIcon = document.querySelector('.search-icon');
+        const searchDropdown = document.querySelector('.search-dropdown');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.querySelector('.search-btn');
+        const closeBtn = document.querySelector('.close-btn');
+
+        // Ensure dropdown is hidden on load
+        searchDropdown.style.display = 'none';
+
+        // Preload content from all pages
+        const pageContent = {};
+        async function loadPageContent() {
+            const pages = [
+                '../index.html',
+                'about_index.html',
+                '../contact/contact_index.html'
+            ];
+
+            for (const page of pages) {
+                try {
+                    const response = await fetch(page);
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(text, 'text/html');
+                    pageContent[page] = doc.body.textContent.toLowerCase();
+                } catch (error) {
+                    console.error(`Failed to load ${page}:`, error);
+                }
+            }
+        }
+
+        // Scroll to section containing search query on page load
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('search');
+            if (query) {
+                const sections = document.querySelectorAll('section');
+                for (const section of sections) {
+                    if (section.textContent.toLowerCase().includes(query.toLowerCase())) {
+                        window.scrollTo({
+                            top: section.getBoundingClientRect().top + window.pageYOffset - 60,
+                            behavior: 'smooth'
+                        });
+                        break;
+                    }
+                }
+            }
+        });
+
+        // Load content when the page loads
+        window.addEventListener('load', loadPageContent);
+
+        searchIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (searchDropdown.style.display !== 'flex') {
+                searchDropdown.style.display = 'flex';
+                searchInput.focus();
+            }
+        });
+
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            searchDropdown.style.display = 'none';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchDropdown.contains(e.target) && !searchIcon.contains(e.target)) {
+                searchDropdown.style.display = 'none';
+            }
+        });
+
+        // Search Functionality
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            if (query) {
+                let found = false;
+                for (const [page, content] of Object.entries(pageContent)) {
+                    if (content.includes(query)) {
+                        // Append search query as URL parameter
+                        window.location.href = `${page}?search=${encodeURIComponent(query)}`;
+                        found = true;
+                        searchDropdown.style.display = 'none';
+                        break;
+                    }
+                }
+                if (!found) {
+                    alert('No results found for "' + query + '"');
+                }
+            }
+        });
+
+        // Certificate Modal
+        const modal = document.getElementById('certificate-modal');
+        const modalImg = document.getElementById('modal-image');
+        const modalClose = document.querySelector('.modal-close');
+        const certificateImages = document.querySelectorAll('.certificate-item img');
+
+        certificateImages.forEach(img => {
+            img.addEventListener('click', () => {
+                modal.style.display = 'flex';
+                modalImg.src = img.dataset.fullsrc;
+            });
+        });
+
+        modalClose.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
